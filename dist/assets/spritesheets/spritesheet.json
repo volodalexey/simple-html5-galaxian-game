@@ -1,0 +1,63 @@
+{
+  "frames": {
+    "spaceship.png": {
+      "frame": {
+        "x": 1,
+        "y": 1,
+        "w": 448,
+        "h": 224
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 1,
+        "y": 1,
+        "w": 448,
+        "h": 224
+      },
+      "sourceSize": {
+        "w": 450,
+        "h": 225
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "invader.png": {
+      "frame": {
+        "x": 451,
+        "y": 1,
+        "w": 30,
+        "h": 26
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 7,
+        "w": 30,
+        "h": 26
+      },
+      "sourceSize": {
+        "w": 31,
+        "h": 39
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    }
+  },
+  "meta": {
+    "app": "http://free-tex-packer.com",
+    "version": "0.6.7",
+    "image": "spritesheet.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 482,
+      "h": 226
+    },
+    "scale": 1
+  }
+}
