@@ -1,6 +1,6 @@
 # Simple HTML5 (Typescript + PixiJS) Galaxian (Space Invaders) Game
 
-# [DEMO](https://volodalexey.github.io/simple-html5-shooting-game/)
+# [DEMO](https://volodalexey.github.io/simple-html5-galaxian-game/)
 
 Originally created by [Christopher Lis](https://github.com/christopher4lis) as [Space Invaders](https://github.com/chriscourses/space-invaders) in following YouTube video [Space Invaders Game Tutorial with JavaScript and HTML Canvas](https://www.youtube.com/watch?v=MCVU0w73uKI)
 
