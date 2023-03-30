@@ -67,13 +67,13 @@ export class ShootingScene extends Container implements IScene {
     })
     this.addChild(this.stars)
 
-    this.invadersContainer = new ParticleContainer(2000, { position: true })
+    this.invadersContainer = new ParticleContainer(500, { position: true })
     this.addChild(this.invadersContainer)
 
-    this.projectilesContainer = new ParticleContainer(2000, { position: true, tint: true })
+    this.projectilesContainer = new ParticleContainer(500, { position: true, tint: true })
     this.addChild(this.projectilesContainer)
 
-    this.particlesContainer = new ParticleContainer(2000, { position: true, tint: true })
+    this.particlesContainer = new ParticleContainer(1000, { position: true, tint: true })
     this.addChild(this.particlesContainer)
 
     this.scoreBar = new ScoreBar()
@@ -251,17 +251,19 @@ export class ShootingScene extends Container implements IScene {
       })
       if (grid != null) {
         const bottomInvaders = grid.getBottomInvaders()
-        const invader = bottomInvaders[Math.floor(Math.random() * bottomInvaders.length)]
-        const projectile = new Projectile({
-          id: ++this.ids,
-          app: this.app,
-          radius: 3,
-          fillColor: 0xBFA0DF,
-          vx: 0,
-          vy: invader.bulletSpeed
-        })
-        projectile.position.set(invader.x, invader.y + invader.height)
-        this.projectilesContainer.addChild(projectile)
+        if (bottomInvaders.length > 0) {
+          const invader = bottomInvaders[Math.floor(Math.random() * bottomInvaders.length)]
+          const projectile = new Projectile({
+            id: ++this.ids,
+            app: this.app,
+            radius: 3,
+            fillColor: 0xBFA0DF,
+            vx: 0,
+            vy: invader.bulletSpeed
+          })
+          projectile.position.set(invader.x, invader.y + invader.height)
+          this.projectilesContainer.addChild(projectile)
+        }
       }
       this.invaderShootFrame = Math.floor(Math.random() * 150 + 50)
       this.elapsedShootFrames = 0
@@ -359,7 +361,8 @@ export class ShootingScene extends Container implements IScene {
     const grid = new Grid({
       invaderTexture: this.invaderTexture,
       initX: this.background.x,
-      initY: this.background.y + this.scoreBar.height + this.scoreBar.scoreOptions.padding
+      initY: this.background.y + this.scoreBar.height + this.scoreBar.scoreOptions.padding,
+      maxCols: Math.min(Math.floor(this.background.width / Grid.cell) - 4, 10)
     })
     if (this.grids.every(g => g.bounds.top > grid.bounds.bottom)) {
       this.grids.push(grid)

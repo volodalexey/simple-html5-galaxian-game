@@ -17,7 +17,7 @@ export class Player extends Sprite {
   static options = {
     scale: 0.15,
     angle: 0.3,
-    moveSpeed: 8,
+    moveSpeed: 6,
     bulletSpeed: -10
   }
 

@@ -1,5 +1,6 @@
 import { type Texture } from 'pixi.js'
 import { Invader } from './Invader'
+import { logGrid } from './logger'
 
 export interface IGridOptions {
   invaderTexture: Texture
@@ -31,8 +32,9 @@ export class Grid {
   public invaders: Invader[] = []
 
   constructor ({ invaderTexture, initX = 0, initY = 0, minCols = 5, maxCols = 10, minRows = 2, maxRows = 5 }: IGridOptions) {
-    const columns = Math.floor(Math.random() * maxCols + minCols)
-    const rows = Math.floor(Math.random() * maxRows + minRows)
+    const columns = Math.floor(Math.random() * (maxCols - minCols) + minCols)
+    const rows = Math.floor(Math.random() * (maxRows - minRows) + minRows)
+    logGrid(`cols=${columns} rows=${rows} (maxCol=${maxCols} minCols=${minCols}) (maxRows=${maxRows} minRows=${minRows})`)
 
     for (let x = 0; x < columns; x++) {
       for (let y = 0; y < rows; y++) {
