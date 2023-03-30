@@ -20,14 +20,16 @@ interface IShootingSceneOptions {
 
 export class ShootingScene extends Container implements IScene {
   public gameEnded = false
-  public elapsedFrames = 0
+  public elapsedSpawnFrames = 0
+  public elapsedShootFrames = 0
   public spawnFrame = Math.floor(Math.random() * 500 + 500)
+  public invaderShootFrame = Math.floor(Math.random() * 150 + 50)
   public ids = 0
   public app!: Application
   public background!: Graphics
 
   public backgroundSettings = {
-    color: 0x777777
+    color: 0x000000
   }
 
   public player!: Player
@@ -54,13 +56,13 @@ export class ShootingScene extends Container implements IScene {
     this.background = new Graphics()
     this.addChild(this.background)
 
-    this.invadersContainer = new ParticleContainer(2000, { scale: true, position: true, tint: true })
+    this.invadersContainer = new ParticleContainer(2000, { position: true })
     this.addChild(this.invadersContainer)
 
-    this.projectilesContainer = new ParticleContainer(2000, { scale: true, position: true, tint: true })
+    this.projectilesContainer = new ParticleContainer(2000, { position: true, tint: true })
     this.addChild(this.projectilesContainer)
 
-    this.particlesContainer = new ParticleContainer(2000, { scale: true, position: true, tint: true })
+    this.particlesContainer = new ParticleContainer(2000, { position: true, tint: true })
     this.addChild(this.particlesContainer)
 
     this.scoreBar = new ScoreBar()
@@ -102,6 +104,27 @@ export class ShootingScene extends Container implements IScene {
     this.background.height = viewHeight
   }
 
+  spawnParticles ({ count, posX, posY, fillColor }: {
+    count: number
+    posX: number
+    posY: number
+    fillColor: number
+  }): void {
+    for (let index = 0; index < count; index++) {
+      const vx = (Math.random() - 0.5) * 10
+      const vy = (Math.random() - 0.5) * 10
+      const particle = new Particle({
+        app: this.app,
+        radius: 2,
+        vx,
+        vy,
+        fillColor
+      })
+      particle.position.set(posX, posY)
+      this.particlesContainer.addChild(particle)
+    }
+  }
+
   handleUpdate (): void {
     if (this.gameEnded) {
       return
@@ -122,6 +145,7 @@ export class ShootingScene extends Container implements IScene {
     } else {
       position.x += velocity.vx
     }
+    this.player.updateState()
 
     const { x, y, width, height } = this
     const left = x
@@ -176,27 +200,29 @@ export class ShootingScene extends Container implements IScene {
           // update score
           this.scoreBar.addScore(100)
 
-          // create particle Effect
-          for (let index = 0; index < Grid.cell; index++) {
-            const angleExp = Math.atan2(projectile.y - invader.y, projectile.x - invader.x)
-            const px = Math.cos(angleExp) * Grid.cell + invader.x
-            const py = Math.sin(angleExp) * Grid.cell + invader.y
-            const vx = (Math.random() - 0.5) * 10
-            const vy = (Math.random() - 0.5) * 10
-            const particle = new Particle({
-              app: this.app,
-              radius: 2,
-              vx,
-              vy,
-              fillColor: 0xBAA0DE
-            })
-            particle.position.set(px, py)
-            this.particlesContainer.addChild(particle)
-          }
+          this.spawnParticles({
+            count: Grid.cell,
+            posX: invader.x,
+            posY: invader.y,
+            fillColor: 0xBAA0DE
+          })
           this.invadersContainer.removeChild(invader)
           invader.removeGromGrid()
           logInvader(`Removed invader killed (${this.invadersContainer.children.length})`)
-          this.scoreBar.addScore(projectile.radius)
+        } else if (Collision.checkCollision(playerBounds, projectileBounds) > 0.1) {
+          this.projectilesContainer.removeChild(projectile)
+          logProjectile(`Removed projectile hit player (${this.projectilesContainer.children.length})`)
+          this.spawnParticles({
+            count: this.player.width,
+            posX: this.player.x,
+            posY: this.player.y,
+            fillColor: 0xFFFFFF
+          })
+          this.player.isAlive = false
+
+          setTimeout(() => {
+            this.endGame()
+          }, 2000)
         }
       }
     }
@@ -205,13 +231,42 @@ export class ShootingScene extends Container implements IScene {
     if (gridsCountBefore !== this.grids.length) {
       logGrid(`Grids count changed ${this.grids.length}`)
     }
-    if (this.elapsedFrames === this.spawnFrame) {
+    // invader shoot back
+    if (this.elapsedShootFrames === this.invaderShootFrame && this.grids.length > 0) {
+      let grid: Grid | undefined
+      this.grids.forEach(g => {
+        if (grid == null) {
+          grid = g
+        } else if (g.bounds.bottom > grid.bounds.bottom) {
+          grid = g
+        }
+      })
+      if (grid != null) {
+        const bottomInvaders = grid.getBottomInvaders()
+        const invader = bottomInvaders[Math.floor(Math.random() * bottomInvaders.length)]
+        const projectile = new Projectile({
+          id: ++this.ids,
+          app: this.app,
+          radius: 3,
+          fillColor: 0xBFA0DF,
+          vx: 0,
+          vy: invader.bulletSpeed
+        })
+        projectile.position.set(invader.x, invader.y + invader.height)
+        this.projectilesContainer.addChild(projectile)
+      }
+      this.invaderShootFrame = Math.floor(Math.random() * 150 + 50)
+      this.elapsedShootFrames = 0
+    }
+    if (this.elapsedSpawnFrames === this.spawnFrame) {
       this.spawnInvadersGrid()
       this.spawnFrame = Math.floor(Math.random() * 500 + 500)
-      this.elapsedFrames = 0
-    } else {
-      this.elapsedFrames += 1
+      this.elapsedSpawnFrames = 0
+    } else if (this.grids.length === 0) {
+      this.spawnInvadersGrid()
     }
+    this.elapsedShootFrames += 1
+    this.elapsedSpawnFrames += 1
   }
 
   addEventLesteners (): void {
@@ -277,15 +332,16 @@ export class ShootingScene extends Container implements IScene {
       return
     }
     if (this.player.shoot()) {
+      this.scoreBar.subScore()
       const projectile = new Projectile({
         id: ++this.ids,
         app: this.app,
         radius: 4,
         fillColor: 0xffffff,
         vx: 0,
-        vy: this.player.options.bulletSpeed
+        vy: Player.options.bulletSpeed
       })
-      projectile.position.set(this.player.x, this.player.y)
+      projectile.position.set(this.player.x, this.player.y - this.player.height / 2 - projectile.height)
       this.projectilesContainer.addChild(projectile)
       logProjectile(`Added (${this.projectilesContainer.children.length})`)
     }
@@ -297,10 +353,14 @@ export class ShootingScene extends Container implements IScene {
       initX: this.background.x,
       initY: this.background.y + this.scoreBar.height + this.scoreBar.scoreOptions.padding
     })
-    this.grids.push(grid)
-    logGrid(`Spawned +1 grid ${this.grids.length}`)
-    for (const invader of grid.invaders) {
-      this.invadersContainer.addChild(invader)
+    if (this.grids.every(g => g.bounds.top > grid.bounds.bottom)) {
+      this.grids.push(grid)
+      logGrid(`Spawned +1 grid ${this.grids.length}`)
+      for (const invader of grid.invaders) {
+        this.invadersContainer.addChild(invader)
+      }
+    } else {
+      logGrid(`Skip spawn grid ${grid.bounds.bottom}`)
     }
   }
 
@@ -319,6 +379,8 @@ export class ShootingScene extends Container implements IScene {
     }
     this.grids = []
     this.gameEnded = false
+    this.player.isAlive = true
+    setTimeout(() => { this.spawnInvadersGrid() })
   }
 
   endGame (): void {

@@ -13,9 +13,11 @@ export interface IGridOptions {
 
 export class Grid {
   static cell = 40
-  public position = {
-    x: 0,
-    y: 0
+  public bounds = {
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0
   }
 
   public velocity = {
@@ -25,11 +27,7 @@ export class Grid {
 
   public invaders: Invader[] = []
 
-  public width = 0
-
   constructor ({ invaderTexture, initX = 0, initY = 0, minCols = 5, maxCols = 10, minRows = 2, maxRows = 5 }: IGridOptions) {
-    this.position.x = initX
-    this.position.y = initY
     const columns = Math.floor(Math.random() * maxCols + minCols)
     const rows = Math.floor(Math.random() * maxRows + minRows)
 
@@ -40,7 +38,7 @@ export class Grid {
           texture: invaderTexture
         })
         // invader.anchor.set(0.5, 0.5)
-        invader.position.set(this.position.x + x * Grid.cell, this.position.y + y * Grid.cell)
+        invader.position.set(initX + x * Grid.cell, initY + y * Grid.cell)
         this.invaders.push(
           invader
         )
@@ -51,8 +49,11 @@ export class Grid {
   }
 
   update ({ levelLeft, levelRight }: { levelLeft: number, levelRight: number }): void {
-    this.position.x += this.velocity.vx
-    this.position.y += this.velocity.vy
+    const { bounds } = this
+    bounds.left += this.velocity.vx
+    bounds.right += this.velocity.vx
+    bounds.top += this.velocity.vy
+    bounds.bottom += this.velocity.vy
 
     for (const invader of this.invaders) {
       invader.update(this.velocity)
@@ -60,16 +61,37 @@ export class Grid {
 
     this.velocity.vy = 0
 
-    if (this.position.x + this.width >= levelRight || this.position.x <= levelLeft) {
+    if (bounds.right >= levelRight || bounds.left <= levelLeft) {
       this.velocity.vx = -this.velocity.vx * 1.15
       this.velocity.vy = Grid.cell
     }
   }
 
   updateBounds (): void {
-    const minX = Math.min(...this.invaders.map(i => i.x))
-    const maxX = Math.max(...this.invaders.map(i => i.x + i.width))
-    this.position.x = minX
-    this.width = maxX - minX
+    const { bounds } = this
+    bounds.top = 9999
+    bounds.right = 0
+    bounds.bottom = 0
+    bounds.left = 9999
+    this.invaders.forEach(inv => {
+      const invBounds = inv.getBounds()
+      if (invBounds.top < bounds.top) {
+        bounds.top = invBounds.top
+      }
+      if (invBounds.right > bounds.right) {
+        bounds.right = invBounds.right
+      }
+      if (invBounds.bottom > bounds.bottom) {
+        bounds.bottom = invBounds.bottom
+      }
+      if (invBounds.left < bounds.left) {
+        bounds.left = invBounds.left
+      }
+    })
+  }
+
+  getBottomInvaders (): Invader[] {
+    this.updateBounds()
+    return this.invaders.filter(inv => inv.y + inv.height === this.bounds.bottom)
   }
 }

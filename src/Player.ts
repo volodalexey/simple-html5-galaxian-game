@@ -14,9 +14,9 @@ export enum PlayerState {
 export class Player extends Sprite {
   public pointerXDown: number | null = null
   public pointerYDown: number | null = null
-  public options = {
+  static options = {
     scale: 0.15,
-    angle: 1,
+    angle: 0.3,
     moveSpeed: 8,
     bulletSpeed: -10
   }
@@ -26,19 +26,25 @@ export class Player extends Sprite {
     vy: 0
   }
 
-  public shootReloadMax = 10
-  public shootReload = 0
+  public heatingMax = 200
+  public heating = 0
+  public isAlive = true
 
   public state!: PlayerState
   constructor ({ shipTexture }: IPlayerOptions) {
     super(shipTexture)
-    this.scale.set(this.options.scale)
+    this.scale.set(Player.options.scale)
     this.anchor.set(0.5, 0.5)
+
+    this.switchState(PlayerState.idle)
   }
 
   shoot (): boolean {
-    if (this.shootReload <= 0) {
-      this.shootReload = this.shootReloadMax
+    if (!this.isAlive) {
+      return false
+    }
+    if (this.heating < this.heatingMax) {
+      this.heating += 15
       return true
     }
     return false
@@ -50,10 +56,10 @@ export class Player extends Sprite {
         this.rotation = 0
         break
       case PlayerState.skewLeft:
-        this.rotation = -this.options.angle
+        this.rotation = -Player.options.angle
         break
       case PlayerState.skewRight:
-        this.rotation = this.options.angle
+        this.rotation = Player.options.angle
         break
     }
     this.state = state
@@ -64,48 +70,58 @@ export class Player extends Sprite {
   }
 
   applyTopDirection (pressed: boolean): void {
+    if (!this.isAlive) {
+      return
+    }
     this.pointerYDown = pressed ? -1 : null
   }
 
   applyLeftDirection (pressed: boolean): void {
+    if (!this.isAlive) {
+      return
+    }
     this.pointerXDown = pressed
       ? -1
       : (this.pointerXDown === -1 ? null : this.pointerXDown)
   }
 
   applyRightDirection (pressed: boolean): void {
+    if (!this.isAlive) {
+      return
+    }
     this.pointerXDown = pressed
       ? 1
       : (this.pointerXDown === 1 ? null : this.pointerXDown)
   }
 
-  getCenter (): { centerX: number, centerY: number } {
-    return {
-      centerX: this.x + this.width / 2,
-      centerY: this.y + this.height / 2
-    }
-  }
-
   handleMove (pressed: boolean | undefined, x: number, y: number): void {
-    const { centerX } = this.getCenter()
+    if (!this.isAlive) {
+      return
+    }
     if (pressed === true) {
-      this.pointerXDown = x - centerX
+      this.pointerXDown = x - this.x
       this.pointerYDown = y - this.y
     } else if (pressed === false) {
       this.pointerXDown = null
       this.pointerYDown = null
     } else {
       if (this.isPointerDown()) {
-        logPlayerMove(`x=${x} (cx=${centerX}) y=${x}`)
-        this.pointerXDown = x - centerX
+        logPlayerMove(`x=${x} (cx=${this.x}) y=${x}`)
+        this.pointerXDown = x - this.x
         this.pointerYDown = y - this.y
       }
     }
   }
 
   updateVelocity (): void {
-    this.shootReload--
-    const { pointerXDown, pointerYDown, velocity, options: { moveSpeed } } = this
+    if (!this.isAlive) {
+      return
+    }
+    if (this.heating > 0) {
+      this.heating--
+    }
+    const { options: { moveSpeed } } = Player
+    const { pointerXDown, pointerYDown, velocity } = this
     if (typeof pointerYDown === 'number' && pointerYDown < 0) {
       velocity.vy = 1
     } else {
@@ -119,6 +135,19 @@ export class Player extends Sprite {
       }
     } else {
       velocity.vx = 0
+    }
+  }
+
+  updateState (): void {
+    if (!this.isAlive) {
+      return
+    }
+    if (this.velocity.vx > 0) {
+      this.switchState(PlayerState.skewRight)
+    } else if (this.velocity.vx < 0) {
+      this.switchState(PlayerState.skewLeft)
+    } else {
+      this.switchState(PlayerState.idle)
     }
   }
 }

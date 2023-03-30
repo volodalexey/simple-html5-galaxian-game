@@ -27,6 +27,7 @@ export class Projectile extends Sprite {
     this.vy = options.vy
     this.fillColor = options.fillColor
     this.setup(options)
+    this.tint = options.fillColor
   }
 
   setup (options: IProjectileOptions): void {

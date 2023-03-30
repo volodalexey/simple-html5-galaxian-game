@@ -7,6 +7,7 @@ export interface IInvaderOptions {
 }
 
 export class Invader extends Sprite {
+  public bulletSpeed = 5
   public parentGrid!: Grid
   constructor ({ texture, grid }: IInvaderOptions) {
     super(texture)

@@ -7,7 +7,7 @@ export class ScoreBar extends Container {
     textSize: 40
   }
 
-  private _score = 0
+  private _score = 100
   public scoreText!: Text
 
   constructor () {
@@ -33,6 +33,11 @@ export class ScoreBar extends Container {
 
   addScore (score: number): void {
     this._score += Math.round(score)
+    this.scoreText.text = `Score: ${this._score}`
+  }
+
+  subScore (): void {
+    this._score -= 10
     this.scoreText.text = `Score: ${this._score}`
   }
 
