@@ -25,7 +25,6 @@ export class Projectile extends Sprite {
     this.radius = options.radius
     this.vx = options.vx
     this.vy = options.vy
-    this.fillColor = options.fillColor
     this.setup(options)
     this.tint = options.fillColor
   }
@@ -34,7 +33,7 @@ export class Projectile extends Sprite {
     let texture = Projectile.textureCache
     if (texture == null) {
       const circle = new Graphics()
-      circle.beginFill(this.fillColor)
+      circle.beginFill(0xffffff)
       circle.drawCircle(0, 0, this.radius)
       circle.endFill()
       circle.cacheAsBitmap = true

@@ -25,6 +25,9 @@ export class Grid {
     vy: 0
   }
 
+  static maxVX = 10
+  static maxVY = 10
+
   public invaders: Invader[] = []
 
   constructor ({ invaderTexture, initX = 0, initY = 0, minCols = 5, maxCols = 10, minRows = 2, maxRows = 5 }: IGridOptions) {
@@ -61,8 +64,12 @@ export class Grid {
 
     this.velocity.vy = 0
 
-    if (bounds.right >= levelRight || bounds.left <= levelLeft) {
-      this.velocity.vx = -this.velocity.vx * 1.15
+    if (bounds.right + this.velocity.vx >= levelRight || bounds.left + this.velocity.vx <= levelLeft) {
+      const factor = (1 + (levelRight - levelLeft) / Grid.cell * 0.01)
+      this.velocity.vx = -this.velocity.vx * factor
+      if (Math.abs(this.velocity.vx) > Grid.maxVX) {
+        this.velocity.vx = Math.sign(this.velocity.vx) * Grid.maxVX
+      }
       this.velocity.vy = Grid.cell
     }
   }

@@ -9,6 +9,7 @@ import { Particle } from './Particle'
 import { StartModal } from './StartModal'
 import { type Invader } from './Invader'
 import { Collision } from './Collision'
+import { Stars } from './Stars'
 
 interface IShootingSceneOptions {
   app: Application
@@ -36,6 +37,7 @@ export class ShootingScene extends Container implements IScene {
   public projectilesContainer!: ParticleContainer
   public invadersContainer!: ParticleContainer
   public particlesContainer!: ParticleContainer
+  public stars!: Stars
   public scoreBar!: ScoreBar
   public startModal!: StartModal
   public grids: Grid[] = []
@@ -55,6 +57,15 @@ export class ShootingScene extends Container implements IScene {
   setup ({ viewWidth, viewHeight, shipTexture }: IShootingSceneOptions): void {
     this.background = new Graphics()
     this.addChild(this.background)
+
+    this.stars = new Stars({
+      app: this.app,
+      levelLeft: this.x,
+      levelRight: viewWidth,
+      levelTop: this.y,
+      levelBottom: viewHeight
+    })
+    this.addChild(this.stars)
 
     this.invadersContainer = new ParticleContainer(2000, { position: true })
     this.addChild(this.invadersContainer)
@@ -129,6 +140,11 @@ export class ShootingScene extends Container implements IScene {
     if (this.gameEnded) {
       return
     }
+    const levelLeft = this.background.x
+    const levelRight = this.background.width
+    const levelTop = this.background.y
+    const levelBottom = this.background.y + this.background.height
+    this.stars.update({ levelTop, levelBottom })
     this.player.updateVelocity()
     const { velocity, position } = this.player
     if (velocity.vy > 0) {
@@ -156,20 +172,20 @@ export class ShootingScene extends Container implements IScene {
       const particle: Particle = child as Particle
       particle.update()
       if (particle.alpha <= 0) {
-        this.particlesContainer.removeChild(particle)
+        particle.removeFromParent()
         logParticle(`Removed particle alpha (${this.particlesContainer.children.length})`)
       } else if (particle.isOutOfViewport({ left, top, right, bottom })) {
-        this.particlesContainer.removeChild(particle)
+        particle.removeFromParent()
         logParticle(`Removed particle out of viewport (${this.particlesContainer.children.length})`)
       }
     }
     for (const grid of this.grids) {
-      grid.update({ levelLeft: this.background.x, levelRight: this.background.width })
+      grid.update({ levelLeft, levelRight })
     }
     for (const child of this.invadersContainer.children) {
       const invader: Invader = child as Invader
       if (invader.isOutOfViewport({ left, top, right, bottom })) {
-        this.invadersContainer.removeChild(invader)
+        invader.removeFromParent()
         invader.removeGromGrid()
         logInvader(`Removed invader out of viewport (${this.invadersContainer.children.length})`)
       }
@@ -178,7 +194,7 @@ export class ShootingScene extends Container implements IScene {
       const projectile: Projectile = child as Projectile
       projectile.update()
       if (projectile.isOutOfViewport({ left, top, right, bottom })) {
-        this.projectilesContainer.removeChild(projectile)
+        projectile.removeFromParent()
         logProjectile(`Removed projectile out of viewport (${this.projectilesContainer.children.length})`)
       }
     }
@@ -187,7 +203,9 @@ export class ShootingScene extends Container implements IScene {
       const invader: Invader = child as Invader
       const invaderBounds = invader.getBounds()
       if (Collision.checkCollision(playerBounds, invaderBounds) > 0) {
-        this.endGame()
+        invader.removeFromParent()
+        invader.removeGromGrid()
+        this.beginEndGame()
         break
       }
       // detect invader collision with projectile
@@ -195,7 +213,7 @@ export class ShootingScene extends Container implements IScene {
         const projectile: Projectile = _child as Projectile
         const projectileBounds = projectile.getBounds()
         if (Collision.checkCollision(invaderBounds, projectileBounds) > 0.1) {
-          this.projectilesContainer.removeChild(projectile)
+          projectile.removeFromParent()
           logProjectile(`Removed projectile hit invader (${this.projectilesContainer.children.length})`)
           // update score
           this.scoreBar.addScore(100)
@@ -206,23 +224,13 @@ export class ShootingScene extends Container implements IScene {
             posY: invader.y,
             fillColor: 0xBAA0DE
           })
-          this.invadersContainer.removeChild(invader)
+          invader.removeFromParent()
           invader.removeGromGrid()
           logInvader(`Removed invader killed (${this.invadersContainer.children.length})`)
         } else if (Collision.checkCollision(playerBounds, projectileBounds) > 0.1) {
-          this.projectilesContainer.removeChild(projectile)
+          projectile.removeFromParent()
           logProjectile(`Removed projectile hit player (${this.projectilesContainer.children.length})`)
-          this.spawnParticles({
-            count: this.player.width,
-            posX: this.player.x,
-            posY: this.player.y,
-            fillColor: 0xFFFFFF
-          })
-          this.player.isAlive = false
-
-          setTimeout(() => {
-            this.endGame()
-          }, 2000)
+          this.beginEndGame()
         }
       }
     }
@@ -368,24 +376,41 @@ export class ShootingScene extends Container implements IScene {
     this.startModal.visible = false
     this.scoreBar.clearScore()
     while (this.projectilesContainer.children[0] != null) {
-      this.projectilesContainer.removeChild(this.projectilesContainer.children[0])
+      this.projectilesContainer.children[0].removeFromParent()
     }
     while (this.invadersContainer.children[0] != null) {
-      this.invadersContainer.removeChild(this.invadersContainer.children[0])
-      this.invadersContainer.removeFromParent()
+      const invader = this.invadersContainer.children[0] as Invader
+      invader.removeFromParent()
+      invader.removeGromGrid()
     }
     while (this.particlesContainer.children[0] != null) {
-      this.particlesContainer.removeChild(this.particlesContainer.children[0])
+      this.particlesContainer.children[0].removeFromParent()
     }
     this.grids = []
     this.gameEnded = false
     this.player.isAlive = true
     setTimeout(() => { this.spawnInvadersGrid() })
+    this.elapsedShootFrames = 0
+    this.elapsedSpawnFrames = 0
   }
 
   endGame (): void {
     this.gameEnded = true
     this.startModal.scoreText.text = this.scoreBar.score
     this.startModal.visible = true
+  }
+
+  beginEndGame (): void {
+    this.spawnParticles({
+      count: this.player.width,
+      posX: this.player.x,
+      posY: this.player.y,
+      fillColor: 0xFFFFFF
+    })
+    this.player.setKilled()
+
+    setTimeout(() => {
+      this.endGame()
+    }, 2000)
   }
 }

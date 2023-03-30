@@ -150,4 +150,13 @@ export class Player extends Sprite {
       this.switchState(PlayerState.idle)
     }
   }
+
+  setKilled (): void {
+    this.isAlive = false
+    this.pointerXDown = null
+    this.pointerYDown = null
+    this.velocity.vx = 0
+    this.velocity.vy = 0
+    this.heating = 0
+  }
 }
